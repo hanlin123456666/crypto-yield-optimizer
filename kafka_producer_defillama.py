@@ -83,4 +83,4 @@ if __name__ == '__main__':
         pools = fetch_pools()
         if pools:
             produce_pools(pools)
-        time.sleep(3600)  # Fetch every 1 hour
+        time.sleep(600)  # Fetch every 10 minutes 
