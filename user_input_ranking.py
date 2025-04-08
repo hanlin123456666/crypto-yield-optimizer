@@ -1,58 +1,85 @@
+# pull data from topic and compute scores
+# then save scored results to investment_scores in couchDB
+
 import json
 import couchdb
+from kafka import KafkaConsumer
 
-# CouchDB configuration
-COUCHDB_URL = 'http://admin:password@couchdb-service:5984/' #updated
-COUCHDB_DB = 'defillama_pools'
+# Kafka config
+KAFKA_BROKER = 'kafka:9092'
+TOPIC = 'defillama_apy'
 
-# Investment types and weights
-investment_types = {
-    'Yield maximize': {'apy_mean_30d': 0.7, 'apy_change_30d': 0.2, 'tvlUsd': 0.1},
-    'Balanced investor': {'apy_mean_30d': 0.5, 'apy_change_30d': 0.3, 'tvlUsd': 0.2},
-    'Conservative investor': {'apy_mean_30d': 0.4, 'apy_change_30d': 0.4, 'tvlUsd': 0.2}
-}
+# CouchDB config
+COUCHDB_URL = 'http://admin:password@couchdb-service:5984/'
+RESULT_DB = 'investment_scores'
 
-# Only the 4 allowed (protocol, token) pairs
+# Allowed combinations
 combinations = [
     ('aave-v3', 'USDC'),
     ('aave-v3', 'USDT'),
     ('aave-v3', 'DAI'),
     ('compound-v3', 'USDC')
 ]
-# Connect to CouchDB
-couch = couchdb.Server(COUCHDB_URL)
-db = couch[COUCHDB_DB]
 
-# Function to calculate weighted average
-def weighted_average(data, weights):
-    return sum(data.get(key, 0) * weight for key, weight in weights.items())
+# Investment strategy weights
+investment_types = {
+    'Yield maximize': {'apy_mean_30d': 0.7, 'apy_change_30d': 0.2, 'tvlUsd': 0.1},
+    'Balanced investor': {'apy_mean_30d': 0.5, 'apy_change_30d': 0.3, 'tvlUsd': 0.2},
+    'Conservative investor': {'apy_mean_30d': 0.4, 'apy_change_30d': 0.4, 'tvlUsd': 0.2}
+}
 
-# User input for investment type
+# Prompt user for investment type
 investment_type = input("Enter investment type (Yield maximize, Balanced investor, Conservative investor): ")
-
-# Validate investment type
 if investment_type not in investment_types:
-    print("Invalid investment type. Choose from: Yield maximize, Balanced investor, Conservative investor.")
+    print("Invalid input.")
     exit()
 
 weights = investment_types[investment_type]
-results = []
 
-# Query and score
-for protocol, token in combinations:
-    query = {'selector': {'symbol': token, 'project': protocol}}
-    docs = list(db.find(query))
-    if docs:
-        latest = docs[-1]  # Assume latest is last
-        score = weighted_average(latest, weights)
-        results.append({
-            'protocol': protocol,
-            'token': token,
-            'score': round(score, 4)
-        })
+# Connect to CouchDB
+couch = couchdb.Server(COUCHDB_URL)
+if RESULT_DB not in couch:
+    couch.create(RESULT_DB)
+result_db = couch[RESULT_DB]
 
-# Sort by score descending
-sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)
+# Connect to Kafka
+consumer = KafkaConsumer(
+    TOPIC,
+    bootstrap_servers=KAFKA_BROKER,
+    auto_offset_reset='earliest',
+    enable_auto_commit=True,
+    group_id='model-consumer-group',
+    value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+)
 
-# Output JSON
-print(json.dumps(sorted_results, indent=2))
+# Scoring function
+def weighted_score(data, weights):
+    return sum(data.get(k, 0) * w for k, w in weights.items())
+
+print("Listening for data...")
+
+# Collect, filter, and score
+try:
+    for msg in consumer:
+        data = msg.value
+        protocol = data.get('project')
+        token = data.get('symbol')
+        if (protocol, token) in combinations:
+            score = weighted_score(data, weights)
+            result = {
+                'protocol': protocol,
+                'token': token,
+                'score': round(score, 4),
+                'chain': data.get('chain'),
+                'apy_mean_30d': data.get('apy_mean_30d'),
+                'apy_change_1d': data.get('apy_change_1d'),
+                'apy_change_30d': data.get('apy_change_30d'),
+                'tvlUsd': data.get('tvlUsd'),
+                'investment_type': investment_type
+            }
+            result_db.save(result)
+            print(f"Saved scored result to CouchDB: {result}")
+except KeyboardInterrupt:
+    print("Stopped by user.")
+except Exception as e:
+    print(f"Error: {e}")
