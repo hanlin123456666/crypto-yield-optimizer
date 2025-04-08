@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 logger = logging.getLogger('DefiLlamaKafkaProducer')
 
 # Kafka configurations
-KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'localhost:9092')
+KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'kafka:9092')
 KAFKA_TOPIC = os.getenv('KAFKA_TOPIC', 'defillama_apy')
 
 # DeFiLlama API endpoint
