@@ -2,7 +2,7 @@ import json
 import couchdb
 
 # CouchDB configuration
-COUCHDB_URL = 'http://admin:password@localhost:5984/' #need to update
+COUCHDB_URL = 'http://admin:password@couchdb-service:5984/' #updated
 COUCHDB_DB = 'defillama_pools'
 
 # Investment types and weights
@@ -12,6 +12,13 @@ investment_types = {
     'Conservative investor': {'apy_mean_30d': 0.4, 'apy_change_30d': 0.4, 'tvlUsd': 0.2}
 }
 
+# Only the 4 allowed (protocol, token) pairs
+combinations = [
+    ('aave-v3', 'USDC'),
+    ('aave-v3', 'USDT'),
+    ('aave-v3', 'DAI'),
+    ('compound-v3', 'USDC')
+]
 # Connect to CouchDB
 couch = couchdb.Server(COUCHDB_URL)
 db = couch[COUCHDB_DB]
@@ -20,9 +27,7 @@ db = couch[COUCHDB_DB]
 def weighted_average(data, weights):
     return sum(data.get(key, 0) * weight for key, weight in weights.items())
 
-# User input for multiple values
-protocols = input("Enter protocols (comma-separated, e.g., aave-v3, compound-v3, lendle): ").split(',')
-tokens = input("Enter tokens (comma-separated, e.g., USDT, USDC, ETH): ").split(',')
+# User input for investment type
 investment_type = input("Enter investment type (Yield maximize, Balanced investor, Conservative investor): ")
 
 # Validate investment type
@@ -30,25 +35,24 @@ if investment_type not in investment_types:
     print("Invalid investment type. Choose from: Yield maximize, Balanced investor, Conservative investor.")
     exit()
 
+weights = investment_types[investment_type]
 results = []
 
-# Fetch data for all combinations
-for protocol in protocols:
-    for token in tokens:
-        protocol = protocol.strip()
-        token = token.strip()
-        query = {'selector': {'symbol': token, 'project': protocol}}
-        result = list(db.find(query))
-        if result:
-            latest_data = result[-1]  # Assuming the latest entry is the most recent
-            weights = investment_types[investment_type]
-            score = weighted_average(latest_data, weights)
-            results.append((protocol, token, score))
+# Query and score
+for protocol, token in combinations:
+    query = {'selector': {'symbol': token, 'project': protocol}}
+    docs = list(db.find(query))
+    if docs:
+        latest = docs[-1]  # Assume latest is last
+        score = weighted_average(latest, weights)
+        results.append({
+            'protocol': protocol,
+            'token': token,
+            'score': round(score, 4)
+        })
 
-# Sort results by score in descending order
-sorted_results = sorted(results, key=lambda x: x[2], reverse=True)
+# Sort by score descending
+sorted_results = sorted(results, key=lambda x: x['score'], reverse=True)
 
-# Display sorted recommendations
-print("\nRecommendations (sorted from highest to lowest score):")
-for protocol, token, score in sorted_results:
-    print(f"{protocol} - {token}: {score:.4f}")
+# Output JSON
+print(json.dumps(sorted_results, indent=2))
