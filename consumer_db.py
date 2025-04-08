@@ -7,7 +7,7 @@ KAFKA_BROKER = 'kafka:9092'
 TOPICS = ['defillama_apy']
 
 # CouchDB config
-COUCHDB_SERVER = 'http://admin:password@couchdb:5984/'  # CouchDB address
+COUCHDB_SERVER = 'http://admin:password@couchdb-service:5984/'  # CouchDB address is updated
 DBS = {'defillama_apy': 'defillama_pools'}
 
 # Initialize CouchDB client
