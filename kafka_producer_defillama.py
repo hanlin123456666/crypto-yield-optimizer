@@ -52,10 +52,10 @@ def fetch_pools() -> List[Dict]:
                 "tvlUsd": pool.get('tvlUsd', 0)
             }
             for pool in data
-            if (pool['project'], pool['symbol']) in ALLOWED_PAIRS
+            if (pool['project'], pool['symbol']) in ALLOWED_PAIRS and pool.get('chain') == 'Ethereum'
         ]
 
-        logger.info(f"Filtered to {len(filtered_pools)} specific pools")
+        logger.info(f"Filtered to {len(filtered_pools)} specific Ethereum pools")
         for pool in filtered_pools:
             logger.info(f"Pool: {pool['symbol']} on {pool['chain']} in {pool['project']} "
                         f"(Mean APY: {pool['apy_mean_30d']}%, 1-Day Change: {pool['apy_change_1d']}%, "
@@ -83,4 +83,4 @@ if __name__ == '__main__':
         pools = fetch_pools()
         if pools:
             produce_pools(pools)
-        time.sleep(600)  # Fetch every 10 minutes 
+        time.sleep(600)  # Fetch every 10 minutes
