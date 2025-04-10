@@ -73,6 +73,10 @@ const DashboardPage = () => {
     loadData();
   }, []);
 
+  const shortenAddress = (address) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   return (
     <>
       <style>{`
@@ -89,6 +93,47 @@ const DashboardPage = () => {
           align-items: center;
           padding: 20px;
           min-height: 100vh;
+          position: relative;
+        }
+
+        .address-btn {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background-color: #21262d;
+          color: #f0f6fc;
+          border: 1px solid #30363d;
+          border-radius: 6px;
+          padding: 8px 12px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .address-btn:hover {
+          background-color: #e74c3c;
+          border-color: #e74c3c;
+        }
+
+        .address-btn:hover .address-text {
+          display: none;
+        }
+
+        .address-btn:hover .logout-text {
+          display: block;
+        }
+
+        .logout-text {
+          display: none;
+        }
+
+        .wallet-icon {
+          width: 16px;
+          height: 16px;
+          fill: currentColor;
         }
 
         .title {
@@ -106,27 +151,18 @@ const DashboardPage = () => {
           max-width: 600px;
           margin-top: 30px;
         }
-
-        .logout-btn {
-          margin-top: 40px;
-          background-color: #e74c3c;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          padding: 12px 24px;
-          font-size: 16px;
-          cursor: pointer;
-          transition: background-color 0.3s ease;
-        }
-
-        .logout-btn:hover {
-          background-color: #c0392b;
-        }
       `}</style>
 
       <div className="container">
+        <button className="address-btn" onClick={logout}>
+          <svg className="wallet-icon" viewBox="0 0 24 24">
+            <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+          </svg>
+          <span className="address-text">{account ? shortenAddress(account) : '...'}</span>
+          <span className="logout-text">Logout</span>
+        </button>
+
         <div className="title">Wallet Dashboard</div>
-        <div className="info"><strong>Address:</strong> {account}</div>
         <div className="info"><strong>ETH Balance:</strong> {ethBalance} ETH</div>
 
         {/* Pie Chart - Portfolio Breakdown */}
@@ -163,8 +199,6 @@ const DashboardPage = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-
-        <button className="logout-btn" onClick={logout}>Logout</button>
       </div>
     </>
   );
