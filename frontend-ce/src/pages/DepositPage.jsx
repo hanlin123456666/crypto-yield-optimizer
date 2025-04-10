@@ -11,7 +11,7 @@ const ZapVaultABI = [
 ];
 
 // Replace with your deployed contract address
-const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
+// const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
 
 const DepositPage = () => {
   const [amount, setAmount] = useState('');
@@ -72,6 +72,8 @@ const DepositPage = () => {
     setError('');
 
     try {
+      // Commenting out contract interaction for testing
+      /*
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
@@ -97,7 +99,12 @@ const DepositPage = () => {
       
       await tx.wait();
       console.log('Deposit successful:', tx.hash);
-      navigate('/dashboard');
+      */
+
+      // Simulate a small delay to show the loading state
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      navigate('/select');
     } catch (err) {
       console.error('Deposit error:', err);
       setError(err.message || 'Failed to deposit. Please try again.');
