@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BrowserProvider, formatEther } from 'ethers';
+import { BrowserProvider, formatEther, parseEther, Contract } from 'ethers';
+
+// Add the contract ABI
+const ZapVaultABI = [
+  "function deposit() external payable",
+  "function depositToken(address token, uint256 amount) external",
+  "function getBalance() public view returns (uint256)",
+  "function getTokenBalance(address token, address user) public view returns (uint256)"
+];
+
+// Replace with your deployed contract address
+const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
 
 const DepositPage = () => {
   const [amount, setAmount] = useState('');
   const [balance, setBalance] = useState('0');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [isToken, setIsToken] = useState(false);
+  const [selectedToken, setSelectedToken] = useState('ETH');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,18 +59,51 @@ const DepositPage = () => {
     e.preventDefault();
     
     if (parseFloat(amount) > parseFloat(balance)) {
-      alert('Insufficient funds! You cannot deposit more than your balance.');
+      setError('Insufficient funds');
       return;
     }
 
     if (parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount greater than 0.');
+      setError('Amount must be greater than 0');
       return;
     }
 
-    // Here you would add the actual deposit logic
-    console.log('Deposit amount:', amount);
-    navigate('/select');
+    setIsDepositing(true);
+    setError('');
+
+    try {
+      const provider = new BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
+
+      let tx;
+      if (selectedToken === 'ETH') {
+        // ETH deposit
+        const amountInWei = parseEther(amount);
+        tx = await vault.deposit({ value: amountInWei });
+      } else {
+        // Token deposit
+        const tokenContract = new Contract(TOKENS[selectedToken], ERC20_ABI, signer);
+        const decimals = await tokenContract.decimals();
+        const amountInWei = parseUnits(amount, decimals);
+        
+        // First approve
+        const approveTx = await tokenContract.approve(CONTRACT_ADDRESS, amountInWei);
+        await approveTx.wait();
+        
+        // Then deposit
+        tx = await vault.depositToken(TOKENS[selectedToken], amountInWei);
+      }
+      
+      await tx.wait();
+      console.log('Deposit successful:', tx.hash);
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Deposit error:', err);
+      setError(err.message || 'Failed to deposit. Please try again.');
+    } finally {
+      setIsDepositing(false);
+    }
   };
 
   return (
@@ -141,7 +188,33 @@ const DepositPage = () => {
           background-color: #597068;
           cursor: not-allowed;
         }
+
+        .loading-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(13, 17, 23, 0.8);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .loading-spinner {
+          color: #1abc9c;
+          font-size: 18px;
+        }
       `}</style>
+
+      {isDepositing && (
+        <div className="loading-overlay">
+          <div className="loading-spinner">
+            Processing deposit...
+          </div>
+        </div>
+      )}
 
       <div className="deposit-container">
         <h1>Deposit Funds</h1>
@@ -166,6 +239,7 @@ const DepositPage = () => {
                   max={balance}
                   required
                   className={error ? 'error' : ''}
+                  disabled={isDepositing}
                 />
                 <div className="error-message">
                   {error}
@@ -174,9 +248,9 @@ const DepositPage = () => {
               <button 
                 type="submit" 
                 className="submit-btn"
-                disabled={!amount || error}
+                disabled={!amount || error || isDepositing}
               >
-                Continue to Investment Selection
+                {isDepositing ? 'Processing...' : 'Continue to Investment Selection'}
               </button>
             </form>
           </>
