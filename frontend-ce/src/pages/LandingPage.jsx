@@ -12,7 +12,7 @@ const LandingPage = () => {
         });
 
         console.log("Connected account:", accounts[0]);
-        navigate('/select');
+        navigate('/deposit');
       } catch (error) {
         console.error("User rejected wallet connection:", error);
         alert("Please allow wallet connection to continue.");
@@ -61,7 +61,7 @@ const LandingPage = () => {
       <div className="landing-container">
         <h1>Welcome to <span className="highlight">CryptoApp</span></h1>
         <button className="connect-btn" onClick={connectWallet}>
-          Connect to MetaMask Wallet
+          Connect Wallet
         </button>
       </div>
     </>
