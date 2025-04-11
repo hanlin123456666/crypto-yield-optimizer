@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchdb-consumer-new
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couchdb-consumer-new
+  template:
+    metadata:
+      labels:
+        app: couchdb-consumer-new
+    spec:
+      containers:
+        - name: couchdb-consumer-new
+          image: 10.56.0.219:5000/new-consumerdb:latest 
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KAFKA_BROKER
+              value: "kafka:9092"
+            - name: COUCHDB_SERVER
+              value: "http://admin:password@couchdb-service:5984/"

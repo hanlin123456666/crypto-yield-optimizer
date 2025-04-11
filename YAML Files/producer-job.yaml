@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: new-producer
+spec:
+  template:
+    metadata:
+      labels:
+        app: new-producer
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: new-producer
+        image: 10.56.0.219:5000/new-producer:latest
+        env:
+        - name: KAFKA_BROKER
+          value: kafka:9092
+        - name: KAFKA_TOPIC
+          value: "defillama_apy"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"

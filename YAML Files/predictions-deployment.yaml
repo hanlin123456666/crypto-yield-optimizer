@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prediction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prediction
+  template:
+    metadata:
+      labels:
+        app: prediction
+    spec:
+      containers:
+        - name: prediction
+          image: 10.56.0.219:5000/prediction:latest  # New image name
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: COUCHDB_URL
+              value: "http://admin:password@couchdb-service:5984/"
+            - name: KAFKA_BROKER
+              value: "kafka:9092"
+            - name: INPUT_TOPIC
+              value: "defillama_apy"
+            - name: OUTPUT_TOPIC
+              value: "investment_scores"
