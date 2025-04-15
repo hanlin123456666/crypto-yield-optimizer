@@ -3,19 +3,16 @@ import json
 import time
 import numpy as np
 
-# Kafka configuration details
+# Kafka configuration
 KAFKA_BROKER = 'kafka:9092'
 INPUT_TOPIC = 'defillama_apy'
 OUTPUT_TOPIC = 'investment_scores'
 
-# Definitions for the types of investments and their respective weights
-investment_types = {
-    'Yield maximize': {'apy_mean_30d': 0.7, 'apy_change_30d': 0.2, 'tvlUsd': 0.1},
-    'Balanced investor': {'apy_mean_30d': 0.5, 'apy_change_30d': 0.3, 'tvlUsd': 0.2},
-    'Conservative investor': {'apy_mean_30d': 0.4, 'apy_change_30d': 0.4, 'tvlUsd': 0.2}
-}
+# Log scale helper
+def log_scale(value):
+    return np.log1p(max(0, value))
 
-# Protocols and tokens allowed for processing
+# Allowed (project, token) combinations
 combinations = [
     ('aave-v3', 'USDC'),
     ('aave-v3', 'USDT'),
@@ -23,62 +20,97 @@ combinations = [
     ('compound-v3', 'USDC')
 ]
 
-# Helper function to apply logarithmic scaling to tvlUsd
-def log_scale(value):
-    return np.log1p(max(0, value))
+# Weight profiles for each investor type
+investment_profiles = {
+    'Yield maximize': {
+        'mu': 0.4,
+        'apy_mean_30d': 0.3,
+        'tvl_log': 0.1,
+        'sigma': -0.1
+    },
+    'Balanced investor': {
+        'mu': 0.3,
+        'apy_mean_30d': 0.2,
+        'tvl_log': 0.3,
+        'sigma': -0.1
+    },
+    'Conservative investor': {
+        'mu': 0.2,
+        'apy_mean_30d': 0.1,
+        'tvl_log': 0.5,
+        'sigma': -0.2
+    }
+}
 
-# Function to calculate weighted average using scaled tvlUsd for scoring
-def weighted_average(data, weights):
-    # Creating a copy of the data to avoid modifying the original input
-    modified_data = data.copy()
-    if 'tvlUsd' in modified_data:
-        modified_data['tvlUsd'] = log_scale(modified_data['tvlUsd'])
-    return sum(modified_data.get(key, 0) * weight for key, weight in weights.items())
-
-# Setting up the Kafka consumer
+# Kafka setup
 consumer = KafkaConsumer(
     INPUT_TOPIC,
     bootstrap_servers=KAFKA_BROKER,
+    value_deserializer=lambda m: json.loads(m.decode('utf-8')),
     auto_offset_reset='earliest',
     enable_auto_commit=True,
-    group_id='investment-score-processor',
-    value_deserializer=lambda m: json.loads(m.decode('utf-8'))
+    group_id='investment-score-processor'
 )
 
-# Setting up the Kafka producer
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
     value_serializer=lambda m: json.dumps(m).encode('utf-8')
 )
 
-print("Processing data and publishing scores for all investment types...")
+print("✅ Scoring DeFi pools based on investor profiles...")
 
-# Main loop to process messages from the input topic and send results to the output topic
 for message in consumer:
     pool = message.value
     project = pool.get('project')
     symbol = pool.get('symbol')
 
-    # Check if the combination of project and symbol is allowed
     if (project, symbol) not in combinations:
         continue
 
     try:
-        for inv_type, weights in investment_types.items():
-            score = weighted_average(pool, weights)
+        # Extract features with safe defaults
+        mu = float(pool.get('mu', 0))
+        apy_mean = float(pool.get('apy_mean_30d', 0))
+        sigma = float(pool.get('sigma', 0.0001))  # prevent division instability
+        tvl_log = log_scale(pool.get('tvlUsd', 0))
+        confidence = float(pool.get('predictedProbability', 50))  # default to neutral if missing
+
+        for profile, weights in investment_profiles.items():
+            score = (
+                weights['mu'] * mu +
+                weights['apy_mean_30d'] * apy_mean +
+                weights['tvl_log'] * tvl_log +
+                weights['sigma'] * sigma
+            )
+
+            confidence_boost = (1 + (confidence - 50) / 500)
+            score *= confidence_boost
+
             result = {
                 'project': project,
                 'symbol': symbol,
+                'type': profile,
                 'score': round(score, 4),
-                'type': inv_type,
                 'timestamp': int(time.time()),
                 'chain': pool.get('chain'),
-                'apy_mean_30d': pool.get('apy_mean_30d'),
-                'apy_change_1d': pool.get('apy_change_1d'),
-                'apy_change_30d': pool.get('apy_change_30d'),
-                'tvlUsd': pool['tvlUsd']  # Ensures the original tvlUsd is sent
+                'mu': mu,
+                'apy_mean_30d': apy_mean,
+                'sigma': sigma,
+                'tvlUsd': pool.get('tvlUsd'),
+                'predictedProbability': confidence
             }
+
+            # Send result to Kafka
             producer.send(OUTPUT_TOPIC, result)
-            print(f"Sent to Kafka: {result}")
+
+            # Log result and formula
+            print(
+                f"✅ [{profile}] {symbol} - {project} | "
+                f"Score = {round(score, 4)} | "
+                f"Components: {weights['mu']}*{mu:.2f} + {weights['apy_mean_30d']}*{apy_mean:.2f} + "
+                f"{weights['tvl_log']}*{tvl_log:.2f} + {weights['sigma']}*{sigma:.4f} | "
+                f"Boost: {confidence_boost:.3f}"
+            )
+
     except Exception as e:
-        print(f"Skipping invalid entry: {e}")
+        print(f"❌ Error processing {symbol} - {project}: {e}")
