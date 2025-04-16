@@ -59,7 +59,8 @@ const LandingPage = () => {
       `}</style>
 
       <div className="landing-container">
-        <h1>Welcome to <span className="highlight">CryptoApp</span></h1>
+        <h1><span className="highlight">Crypto Yield Optimizer</span></h1>
+        <h2>Maximize your returns by automatically rebalancing your yield strategies!</h2>
         <button className="connect-btn" onClick={connectWallet}>
           Connect Wallet
         </button>

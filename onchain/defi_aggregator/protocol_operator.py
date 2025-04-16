@@ -650,19 +650,20 @@ def get_protocol_operator(network: str, protocol: str, **kwargs):
 
 def main():
 
-    # uniswap_operator = get_protocol_operator('Ethereum', 'uniswap-v3')
-    # print(uniswap_operator.swap('WETH', 'DAI', 1))
 
     # weth_operator = get_protocol_operator('Ethereum', 'weth')
-    # print(weth_operator.wrap_eth(0.1))
+    # print(weth_operator.wrap_eth(0.3))
     # time.sleep(10)
     # print(weth_operator.unwrap_eth(0.1))
 
-    compoud_operator = get_protocol_operator('Ethereum', 'compound-v3')
+    uniswap_operator = get_protocol_operator('Ethereum', 'uniswap-v3')
+    print(uniswap_operator.swap('WETH', 'USDT', 0.1))
+
+    # compoud_operator = get_protocol_operator('Ethereum', 'compound-v3')
     # compoud_operator.supply('USDC', 10)
     # print(compoud_operator.get_protocol_balance('USDC'))
     # time.sleep(10)
-    compoud_operator.withdraw('USDC', 10)
+    # compoud_operator.withdraw('USDC', 10)
 
     # aave_operator = get_protocol_operator('Ethereum', 'aave-v3')
     # # print(aave_operator.supply('USDC', 10))

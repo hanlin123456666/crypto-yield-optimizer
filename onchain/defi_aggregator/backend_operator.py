@@ -56,17 +56,17 @@ def process_strategy(doc):
         if weth_operator.get_weth_balance() < 0.1:
             weth_operator.wrap_eth(AMOUNT)
         sleep(10)
-        uniswap_operator.swap('WETH', symbol, 150)
+        uniswap_operator.swap('WETH', symbol, 50)
         sleep(10)
-        target_operator.supply(symbol, 150)
+        target_operator.supply(symbol, 50)
     else:
         print(f"Rebalancing: Moving from {existing_protocol}:{existing_token} to {protocol}:{symbol}")
         existing_operator = get_protocol_operator(chain, existing_protocol)
         withdraw_all(existing_operator, existing_token)
         sleep(10)
-        uniswap_operator.swap('WETH', symbol, 150)
+        uniswap_operator.swap('WETH', symbol, 50)
         sleep(10)
-        target_operator.supply(symbol, 150)
+        target_operator.supply(symbol, 50)
 
 def check_if_wallet_has_balance(protocol_operator, token_symbol, min_balance=0.1):
     try:

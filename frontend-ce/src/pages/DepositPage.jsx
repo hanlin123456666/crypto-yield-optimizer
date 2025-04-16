@@ -22,7 +22,7 @@ const DepositPage = () => {
   const [isDepositing, setIsDepositing] = useState(false);
   const [isToken, setIsToken] = useState(false);
   const [selectedToken, setSelectedToken] = useState('ETH');
-  const [isWithdraw, setIsWithdraw] = useState(false);
+  // const [isWithdraw, setIsWithdraw] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,41 +95,41 @@ const DepositPage = () => {
   };
 
   // Add withdrawal function
-  const handleWithdraw = async () => {
-    try {
-      setIsWithdraw(true);
+  // const handleWithdraw = async () => {
+  //   try {
+  //     setIsWithdraw(true);
       
-      const provider = new BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
+  //     const provider = new BrowserProvider(window.ethereum);
+  //     const signer = await provider.getSigner();
+  //     const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
       
-      // Get contract balance
-      const contractBalance = await vault.getBalance();
+  //     // Get contract balance
+  //     const contractBalance = await vault.getBalance();
       
-      if (contractBalance <= 0) {
-        throw new Error('No funds to withdraw');
-      }
+  //     if (contractBalance <= 0) {
+  //       throw new Error('No funds to withdraw');
+  //     }
 
-      // Withdraw all funds back to user's wallet
-      const tx = await vault.withdrawToProtocol(
-        "0x0000000000000000000000000000000000000000", // Use zero address for ETH
-        await signer.getAddress(),
-        contractBalance
-      );
+  //     // Withdraw all funds back to user's wallet
+  //     const tx = await vault.withdrawToProtocol(
+  //       "0x0000000000000000000000000000000000000000", // Use zero address for ETH
+  //       await signer.getAddress(),
+  //       contractBalance
+  //     );
 
-      await tx.wait();
-      console.log('Withdrawal successful:', tx.hash);
+  //     await tx.wait();
+  //     console.log('Withdrawal successful:', tx.hash);
       
-      // Refresh balance
-      await fetchBalance();
+  //     // Refresh balance
+  //     await fetchBalance();
       
-    } catch (err) {
-      console.error('Withdrawal error:', err);
-      setError(err.message || 'Failed to withdraw. Please try again.');
-    } finally {
-      setIssWithdraw(false);
-    }
-  };
+  //   } catch (err) {
+  //     console.error('Withdrawal error:', err);
+  //     setError(err.message || 'Failed to withdraw. Please try again.');
+  //   } finally {
+  //     setIssWithdraw(false);
+  //   }
+  // };
 
   return (
     <>
@@ -232,10 +232,10 @@ const DepositPage = () => {
           font-size: 18px;
         }
 
-        .withdraw-btn {
-          background-color: #e74c3c;
-          margin-top: 10px;
-        }
+        // .withdraw-btn {
+        //   background-color: #e74c3c;
+        //   margin-top: 10px;
+        // }
       `}</style>
 
       {isDepositing && (
@@ -253,7 +253,7 @@ const DepositPage = () => {
         ) : (
           <>
             <div className="balance-display">
-              <p>Your Balance: {parseFloat(balance).toFixed(4)} ETH</p>
+              <p>Available Balance: {parseFloat(balance).toFixed(4)} ETH</p>
             </div>
             <form className="deposit-form" onSubmit={handleSubmit}>
               <div className="input-group">
@@ -284,14 +284,14 @@ const DepositPage = () => {
               </button>
               
               {/* Add withdraw button */}
-              <button 
+              {/* <button 
                 type="button"
                 className="submit-btn withdraw-btn"
                 onClick={handleWithdraw}
                 disabled={isWithdraw}
               >
                 {isWithdraw ? 'Processing Withdrawal...' : 'Withdraw Funds'}
-              </button>
+              </button> */}
             </form>
           </>
         )}
