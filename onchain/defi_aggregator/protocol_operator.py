@@ -272,6 +272,49 @@ class BaseProtocolOperator:
 class AaveOperator(BaseProtocolOperator):
     """Class for working with AAVE across networks"""
     
+    def get_protocol_balance(self, token: str) -> float:
+        """
+        Get user aToken balance in Aave protocol
+        
+        Args:
+            token: Token symbol (e.g., 'USDC')
+            
+        Returns:
+            Balance as float
+        """
+        try:
+            if token in STABLECOINS and self.network in STABLECOINS[token]:
+                token_address = self.w3.to_checksum_address(STABLECOINS[token][self.network])
+            else:
+                token_address = get_token_address(token, self.network)
+
+            logger.info(f"Checking Aave protocol balance for {token} ({token_address})")
+
+            # Get aToken address from reserve data
+            reserve_data = self.contract.functions.getReserveData(token_address).call()
+            atoken_address = reserve_data[8]
+
+            if not Web3.is_address(atoken_address) or atoken_address == '0x0000000000000000000000000000000000000000':
+                raise ValueError(f"Invalid aToken address for {token}: {atoken_address}")
+
+            # Load aToken contract
+            with open(ABI_DIR / 'ERC20.json') as f:
+                atoken_contract = self.w3.eth.contract(
+                    address=self.w3.to_checksum_address(atoken_address),
+                    abi=json.load(f)
+                )
+
+            balance = atoken_contract.functions.balanceOf(self.account.address).call()
+            decimals = atoken_contract.functions.decimals().call()
+            balance_human = balance / 10**decimals
+
+            logger.info(f"Aave aToken balance for {token}: {balance_human}")
+            return balance_human
+
+        except Exception as e:
+            logger.error(f"Error getting Aave protocol balance for {token}: {e}")
+            return 0.0
+        
     def supply(self, token: str, amount: float) -> str:
         """Deposit funds into protocol"""
         token_address = STABLECOINS[token][self.network]
@@ -429,42 +472,37 @@ class CompoundOperator(BaseProtocolOperator):
     
     def get_protocol_balance(self, token: str) -> float:
         """
-        Get user balance for a specific token in Compound protocol
-        
+        Get user balance for a specific token in Compound V3 (Comet) protocol.
+
         Args:
             token: Token symbol (e.g., 'USDC')
-            
+
         Returns:
             Balance as float
         """
         try:
             if token in STABLECOINS and self.network in STABLECOINS[token]:
-                token_address = STABLECOINS[token][self.network]
+                token_address = Web3.to_checksum_address(STABLECOINS[token][self.network])
             else:
                 token_address = get_token_address(token, self.network)
-                
-            logger.info(f"Checking balance for token {token} ({token_address}) in Compound")
-            
-            
-            # Create token contract
+
+            logger.info(f"Checking Compound V3 balance for {token} ({token_address})")
+
+            # Get decimals
             with open(ABI_DIR / 'ERC20.json') as f:
-                token_contract = self.w3.eth.contract(
-                    address=token_address,
-                    abi=json.load(f)
-                )
-            
-            # Get and log balance
-            balance = token_contract.functions.balanceOf(self.account.address).call()
+                erc20_abi = json.load(f)
+            token_contract = self.w3.eth.contract(address=token_address, abi=erc20_abi)
             decimals = token_contract.functions.decimals().call()
-            
+
+            # Get balance from Comet contract
             balance_wei = self.contract.functions.balanceOf(self.account.address).call()
-            balance_human = balance_wei / 10**decimals
- 
-            logger.info(f"User balance for {token}: {balance_human} in protocol {self.protocol}")
-            
+            balance = balance_wei / (10 ** decimals)
+
+            logger.info(f"User balance in Compound V3: {balance} {token}")
             return balance
+
         except Exception as e:
-            logger.error(f"Error getting protocol balance for {token}: {e}")
+            logger.error(f"Error getting Compound V3 balance for {token}: {e}")
             return 0.0
 
     def supply(self, token: str, amount: float) -> str:
@@ -556,6 +594,11 @@ class WETHOperator(BaseProtocolOperator):
             abi = json.load(f)
         return self.w3.eth.contract(address=self.weth_address, abi=abi)
 
+    def get_weth_balance(self) -> float:
+        """Get the user's current WETH balance in ETH"""
+        balance_wei = self.weth.functions.balanceOf(self.account.address).call()
+        return balance_wei / 1e18
+
     def wrap_eth(self, amount_eth: float) -> str:
         """Wrap ETH into WETH"""
         amount_wei = self.w3.to_wei(amount_eth, 'ether')
@@ -604,22 +647,24 @@ def get_protocol_operator(network: str, protocol: str, **kwargs):
 
 def main():
 
-    uniswap_operator = get_protocol_operator('Ethereum', 'uniswap-v3')
-    print(uniswap_operator.swap('WETH', 'DAI', 1))
+    # uniswap_operator = get_protocol_operator('Ethereum', 'uniswap-v3')
+    # print(uniswap_operator.swap('WETH', 'DAI', 1))
 
     # weth_operator = get_protocol_operator('Ethereum', 'weth')
     # print(weth_operator.wrap_eth(0.1))
     # time.sleep(10)
-    # print(weth_operator.unwrap_eth(0.05))
+    # print(weth_operator.unwrap_eth(0.1))
 
-    # compoud_operator = get_protocol_operator('Ethereum', 'compound-v3')
-    # print(compoud_operator.get_protocol_balance('USDC'))
+    compoud_operator = get_protocol_operator('Ethereum', 'compound-v3')
     # compoud_operator.supply('USDC', 10)
+    # print(compoud_operator.get_protocol_balance('USDC'))
     # time.sleep(10)
-    # compoud_operator.withdraw('USDC', 5)
+    compoud_operator.withdraw('USDC', 10)
 
     # aave_operator = get_protocol_operator('Ethereum', 'aave-v3')
-    # print(aave_operator.supply('USDT', 10))
+    # # print(aave_operator.supply('USDC', 10))
+    # # time.sleep(10)
+    # print(aave_operator.get_protocol_balance('USDT'))
     # time.sleep(10)
     # aave_operator.withdraw('USDT', 5)
 

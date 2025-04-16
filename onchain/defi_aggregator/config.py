@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 
+COUCHDB_URL = os.getenv("COUCHDB_URL")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
+
 RPC_URLS = {
     'Ethereum': os.getenv("ETHEREUM_RPC_URL"),
     # 'Polygon': os.getenv('POLYGON_RPC_URL'),
