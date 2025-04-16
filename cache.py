@@ -27,6 +27,16 @@ def listen_to_couchdb_changes():
                         process_strategy(doc)
                 except Exception as e:
                     print(f"Failed to process line: {e}")
+                    
+# Fetch CouchDB's latest record
+# def fetch_latest_strategy():
+#     url = f"{COUCHDB_URL}/{DATABASE_NAME}/_all_docs?include_docs=true&descending=true&limit=1"
+#     response = requests.get(url, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+#     if response.status_code == 200:
+#         rows = response.json().get("rows", [])
+#         if rows:
+#             return rows[0]["doc"]
+#     return None
 
 def process_strategy(doc):
     global last_strategy

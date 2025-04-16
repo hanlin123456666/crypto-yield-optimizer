@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BrowserProvider, formatEther, parseEther, Contract } from 'ethers';
 
-// Add the contract ABI
+// Update the ZapVault ABI to include withdrawal function
 const ZapVaultABI = [
   "function deposit() external payable",
   "function depositToken(address token, uint256 amount) external",
   "function getBalance() public view returns (uint256)",
-  "function getTokenBalance(address token, address user) public view returns (uint256)"
+  "function getTokenBalance(address token, address user) public view returns (uint256)",
+  "function withdrawToProtocol(address token, address protocol, uint256 amount) external"
 ];
 
-// Replace with your deployed contract address
-// const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
+// Add deployed contract address
+const CONTRACT_ADDRESS = "0xff4EdEA900F4da54EbA5e79c2e071e0029ac2570";
 
 const DepositPage = () => {
   const [amount, setAmount] = useState('');
@@ -21,6 +22,7 @@ const DepositPage = () => {
   const [isDepositing, setIsDepositing] = useState(false);
   const [isToken, setIsToken] = useState(false);
   const [selectedToken, setSelectedToken] = useState('ETH');
+  const [isWithdraw, setIsWithdraw] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,44 +74,60 @@ const DepositPage = () => {
     setError('');
 
     try {
-      // Commenting out contract interaction for testing
-      /*
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
 
-      let tx;
-      if (selectedToken === 'ETH') {
-        // ETH deposit
-        const amountInWei = parseEther(amount);
-        tx = await vault.deposit({ value: amountInWei });
-      } else {
-        // Token deposit
-        const tokenContract = new Contract(TOKENS[selectedToken], ERC20_ABI, signer);
-        const decimals = await tokenContract.decimals();
-        const amountInWei = parseUnits(amount, decimals);
-        
-        // First approve
-        const approveTx = await tokenContract.approve(CONTRACT_ADDRESS, amountInWei);
-        await approveTx.wait();
-        
-        // Then deposit
-        tx = await vault.depositToken(TOKENS[selectedToken], amountInWei);
-      }
+      // ETH deposit
+      const amountInWei = parseEther(amount);
+      const tx = await vault.deposit({ value: amountInWei });
       
       await tx.wait();
       console.log('Deposit successful:', tx.hash);
-      */
 
-      // Simulate a small delay to show the loading state
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       navigate('/select');
     } catch (err) {
       console.error('Deposit error:', err);
       setError(err.message || 'Failed to deposit. Please try again.');
     } finally {
       setIsDepositing(false);
+    }
+  };
+
+  // Add withdrawal function
+  const handleWithdraw = async () => {
+    try {
+      setIsWithdraw(true);
+      
+      const provider = new BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
+      
+      // Get contract balance
+      const contractBalance = await vault.getBalance();
+      
+      if (contractBalance <= 0) {
+        throw new Error('No funds to withdraw');
+      }
+
+      // Withdraw all funds back to user's wallet
+      const tx = await vault.withdrawToProtocol(
+        "0x0000000000000000000000000000000000000000", // Use zero address for ETH
+        await signer.getAddress(),
+        contractBalance
+      );
+
+      await tx.wait();
+      console.log('Withdrawal successful:', tx.hash);
+      
+      // Refresh balance
+      await fetchBalance();
+      
+    } catch (err) {
+      console.error('Withdrawal error:', err);
+      setError(err.message || 'Failed to withdraw. Please try again.');
+    } finally {
+      setIssWithdraw(false);
     }
   };
 
@@ -213,6 +231,11 @@ const DepositPage = () => {
           color: #1abc9c;
           font-size: 18px;
         }
+
+        .withdraw-btn {
+          background-color: #e74c3c;
+          margin-top: 10px;
+        }
       `}</style>
 
       {isDepositing && (
@@ -258,6 +281,16 @@ const DepositPage = () => {
                 disabled={!amount || error || isDepositing}
               >
                 {isDepositing ? 'Processing...' : 'Continue to Investment Selection'}
+              </button>
+              
+              {/* Add withdraw button */}
+              <button 
+                type="button"
+                className="submit-btn withdraw-btn"
+                onClick={handleWithdraw}
+                disabled={isWithdraw}
+              >
+                {isWithdraw ? 'Processing Withdrawal...' : 'Withdraw Funds'}
               </button>
             </form>
           </>

@@ -294,8 +294,11 @@ class AaveOperator(BaseProtocolOperator):
             reserve_data = self.contract.functions.getReserveData(token_address).call()
             atoken_address = reserve_data[8]
 
-            if not Web3.is_address(atoken_address) or atoken_address == '0x0000000000000000000000000000000000000000':
+            if not self.w3.is_address(atoken_address):
                 raise ValueError(f"Invalid aToken address for {token}: {atoken_address}")
+            
+            if atoken_address == '0x0000000000000000000000000000000000000000':
+                logger.info("No Aave balance yet.")
 
             # Load aToken contract
             with open(ABI_DIR / 'ERC20.json') as f:
@@ -317,7 +320,7 @@ class AaveOperator(BaseProtocolOperator):
         
     def supply(self, token: str, amount: float) -> str:
         """Deposit funds into protocol"""
-        token_address = STABLECOINS[token][self.network]
+        token_address = get_token_address(token, self.network)
         amount_wei = self._convert_to_wei(token_address, amount)
         
         # Create token contract
@@ -382,7 +385,7 @@ class AaveOperator(BaseProtocolOperator):
                 raise ValueError(f"Token {token} is frozen in the pool")
                 
             atoken_address = reserve_data[8]
-            if not Web3.is_address(atoken_address) or atoken_address == '0x0000000000000000000000000000000000000000':
+            if not self.w3.is_address(atoken_address) or atoken_address == '0x0000000000000000000000000000000000000000':
                 raise ValueError(f"Invalid aToken address for {token}: {atoken_address}")
                 
             logger.info(f"Token is supported, aToken address: {atoken_address}")

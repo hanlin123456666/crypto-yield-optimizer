@@ -3,18 +3,32 @@ import {
   PieChart, Pie, Cell, Legend, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid
 } from 'recharts';
-import { JsonRpcProvider, formatEther } from 'ethers';
+import { JsonRpcProvider, formatEther, BrowserProvider, Contract, parseEther } from 'ethers';
 import { useNavigate } from 'react-router-dom';
 
 const INFURA_URL = "https://sepolia.infura.io/v3/eadc5f28a76f499b96c0dbbf9ab11121"; //  Replace this with your real one
 
 const COLORS = ['#1abc9c', '#3498db', '#9b59b6', '#f39c12', '#e74c3c'];
 
+// Add the ZapVault ABI
+const ZapVaultABI = [
+  "function deposit() external payable",
+  "function depositToken(address token, uint256 amount) external",
+  "function getBalance() public view returns (uint256)",
+  "function getTokenBalance(address token, address user) public view returns (uint256)",
+  "function withdrawToProtocol(address token, address protocol, uint256 amount) external"
+];
+
+// Add your deployed contract address
+const CONTRACT_ADDRESS = "0xff4EdEA900F4da54EbA5e79c2e071e0029ac2570";
+
 const DashboardPage = () => {
   const [account, setAccount] = useState('');
   const [ethBalance, setEthBalance] = useState(0);
   const [chartData, setChartData] = useState([]);
   const [priceData, setPriceData] = useState([]);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [contractBalance, setContractBalance] = useState('0');
   const navigate = useNavigate();
 
   const logout = () => {
@@ -22,6 +36,8 @@ const DashboardPage = () => {
     setEthBalance(0);
     setChartData([]);
     setPriceData([]);
+    setIsWithdrawing(false);
+    setContractBalance('0');
     navigate('/', { replace: true });
   };
 
@@ -33,10 +49,15 @@ const DashboardPage = () => {
         const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
         setAccount(addr);
 
-        const provider = new JsonRpcProvider(INFURA_URL);
+        const provider = new BrowserProvider(window.ethereum);
         const balance = await provider.getBalance(addr);
         const eth = parseFloat(formatEther(balance));
         setEthBalance(eth);
+
+        // Get contract balance
+        const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, provider);
+        const vaultBalance = await vault.getBalance();
+        setContractBalance(formatEther(vaultBalance));
 
         //  Add more tokens here later
         const tokens = [
@@ -72,6 +93,44 @@ const DashboardPage = () => {
 
     loadData();
   }, []);
+
+  const handleWithdraw = async () => {
+    if (!contractBalance || parseFloat(contractBalance) <= 0) {
+      alert('No funds available to withdraw');
+      return;
+    }
+
+    setIsWithdrawing(true);
+
+    try {
+      const provider = new BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const vault = new Contract(CONTRACT_ADDRESS, ZapVaultABI, signer);
+      
+      // Withdraw all funds back to user's wallet
+      const tx = await vault.withdrawToProtocol(
+        "0x0000000000000000000000000000000000000000", // Use zero address for ETH
+        await signer.getAddress(),
+        parseEther(contractBalance)
+      );
+
+      await tx.wait();
+      console.log('Withdrawal successful:', tx.hash);
+      
+      // Refresh balances
+      const newBalance = await provider.getBalance(account);
+      setEthBalance(parseFloat(formatEther(newBalance)));
+      
+      const newVaultBalance = await vault.getBalance();
+      setContractBalance(formatEther(newVaultBalance));
+
+    } catch (err) {
+      console.error('Withdrawal error:', err);
+      alert('Failed to withdraw. Please try again.');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   const shortenAddress = (address) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -151,6 +210,38 @@ const DashboardPage = () => {
           max-width: 600px;
           margin-top: 30px;
         }
+
+        .withdraw-btn {
+          background-color: #1abc9c;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 12px 24px;
+          font-size: 16px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+          margin-top: 20px;
+        }
+
+        .withdraw-btn:hover {
+          background-color: #17a589;
+        }
+
+        .withdraw-btn:disabled {
+          background-color: #597068;
+          cursor: not-allowed;
+        }
+
+        .balance-info {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin: 20px 0;
+          padding: 20px;
+          background-color: #21262d;
+          border-radius: 8px;
+          text-align: center;
+        }
       `}</style>
 
       <div className="container">
@@ -163,7 +254,17 @@ const DashboardPage = () => {
         </button>
 
         <div className="title">Wallet Dashboard</div>
-        <div className="info"><strong>ETH Balance:</strong> {ethBalance} ETH</div>
+        <div className="balance-info">
+          <div className="info"><strong>Wallet Balance:</strong> {ethBalance} ETH</div>
+          <div className="info"><strong>Invested Balance:</strong> {parseFloat(contractBalance).toFixed(4)} ETH</div>
+          <button 
+            className="withdraw-btn"
+            onClick={handleWithdraw}
+            disabled={isWithdrawing || parseFloat(contractBalance) <= 0}
+          >
+            {isWithdrawing ? 'Processing...' : 'Withdraw Funds'}
+          </button>
+        </div>
 
         {/* Pie Chart - Portfolio Breakdown */}
         <div className="chart-wrapper">
