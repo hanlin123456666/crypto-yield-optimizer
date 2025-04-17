@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protocol-operator
+spec:
+  replicas: 1  # Default startup count; HPA will override this
+  selector:
+    matchLabels:
+      app: protocol-operator
+  template:
+    metadata:
+      labels:
+        app: protocol-operator
+    spec:
+      containers:
+      - name: operator
+        image: 10.56.0.219:5000/protocol-operator-newest1:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+        env:
+        - name: ETHEREUM_RPC_URL
+          value: "PRIVATE"
+        - name: PRIVATE_KEY
+          value: "PRIVATE"
+        - name: COUCHDB_URL
+          value: "http://129.114.26.15:30084/"
+        - name: DATABASE_NAME
+          value: "investment_scores"
+        - name: USERNAME
+          value: "admin"
+        - name: PASSWORD
+          value: "password"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: protocol-operator-service
+spec:
+  selector:
+    app: protocol-operator
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 30081
