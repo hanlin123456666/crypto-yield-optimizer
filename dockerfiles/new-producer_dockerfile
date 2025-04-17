@@ -1,0 +1,31 @@
+FROM ubuntu:22.04
+
+# Set non-interactive installation mode
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update & Install required dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
+    net-tools \
+    curl \
+    build-essential \
+    librdkafka-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python3 as default (if needed)
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+# Upgrade pip and install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir kafka-python requests
+
+# Set working directory
+WORKDIR /app
+
+# Copy your Python script
+COPY new-producer.py new-producer.py
+
+# Run your Python script
+CMD ["python", "new-producer.py"]

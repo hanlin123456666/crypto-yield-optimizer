@@ -1,0 +1,29 @@
+FROM ubuntu:22.04
+
+# Set non-interactive mode for apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
+    build-essential \
+    librdkafka-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set python3 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+# Install Python packages
+RUN pip install --no-cache-dir kafka-python couchdb
+
+# Set working directory
+WORKDIR /app
+
+# Copy the consumer script
+COPY new-consumer-db.py new-consumer-db.py
+
+# Command to run the script
+CMD ["python", "new-consumer-db.py"]
