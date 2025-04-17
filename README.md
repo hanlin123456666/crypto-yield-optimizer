@@ -6,7 +6,7 @@ A decentralized finance (DeFi) platform integrated with a scalable cloud backend
 
 ### Authors and Contribution
 Sreynit Khatt – Computer Science, sreynit.khatt@vanderbilt.edu - dockerfiles, yaml files, VMs, k8s pod set up, CouchDB setup
-Hanlin Chen – Data Science Institute, hanlin.chen@vanderbilt.edu - ML inference, API producer
+Hanlin Chen – Data Science Institute, hanlin.chen@vanderbilt.edu - prediction, API producer, consumer
 Hannah Wang – Computer Science, hannah.a.wang@vanderbilt.edu - onchain (contracts, backend and protocol operators), frontend ~80%
 DeAnthony L. Dixon – Computer Science, deanthony.l.dixon@vanderbilt.edu - frontend ~20%
 
@@ -15,7 +15,7 @@ DeAnthony L. Dixon – Computer Science, deanthony.l.dixon@vanderbilt.edu - fron
 - Smart Contract Vault: Securely holds user funds and triggers backend workflows on deposit/withdraw events.
 - Automatic Rebalancing: Cloud-based backend reallocates funds to maximize yield based on real-time DefiLlama data.
 - Scalable Cloud Stack: Powered by VMs, Docker, Kubernetes, CouchDB, and Kafka.
-- ML-Driven Inference: Predictive model evaluates expected returns and confidence levels for each protocol-token pair.
+- Prediction and Recommendation: predicts returns and confidence levels for each protocol-token pair to deliver personalized, real-time DeFi investment suggestions based on user-selected profiles.
 - React Dashboard: Users can connect wallets, view live yields, monitor deposits, and withdraw with one click.
 
 ### Architecture
