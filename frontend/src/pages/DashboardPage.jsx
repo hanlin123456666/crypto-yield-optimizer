@@ -16,7 +16,7 @@ const ZapVaultABI = [
   "function withdrawToProtocol(address token, address protocol, uint256 amount) external"
 ];
 
-// Add your deployed contract address
+// Add deployed contract address
 const CONTRACT_ADDRESS = "0xff4EdEA900F4da54EbA5e79c2e071e0029ac2570";
 
 // Add these constants at the top of the file, after the existing constants
@@ -28,23 +28,19 @@ const PROTOCOL_TOKEN_PAIRS = [
 ];
 
 const generateRandomAPY = () => {
-  // Generate random APY between 2.000% and 4.000%
   return (Math.random() * 2 + 2).toFixed(3);
 };
 
 const generateRandomBalance = () => {
-  // Generate random balance between 50.000 and 50.500
   return (Math.random() * 0.5 + 50).toFixed(3);
 };
 
 const DashboardPage = () => {
-  // States for real contract interaction
   const [account, setAccount] = useState('');
   const [ethBalance, setEthBalance] = useState(0);
   const [contractBalance, setContractBalance] = useState('0');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   
-  // States for display purposes only
   const [currentProtocol, setCurrentProtocol] = useState('');
   const [currentToken, setCurrentToken] = useState('');
   const [currentAPY, setCurrentAPY] = useState('');
@@ -68,7 +64,6 @@ const DashboardPage = () => {
     navigate('/', { replace: true });
   };
 
-  // Update selectRandomProtocolToken to check contract balance
   const selectRandomProtocolToken = () => {
     // If contract balance is 0, show dashes
     if (parseFloat(contractBalance) <= 0) {
