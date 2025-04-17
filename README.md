@@ -5,10 +5,10 @@
 A decentralized finance (DeFi) platform integrated with a scalable cloud backend that enables users to earn passive income by supplying assets to lending protocols like Aave and Compound. The system automates yield optimization using event-driven pipelines, live on-chain monitoring, and real-time reallocation logic.
 
 ### Authors and Contribution
-Sreynit Khatt – Computer Science, sreynit.khatt@vanderbilt.edu - dockerfiles, yaml files, VMs, k8s pod set up, CouchDB setup
-Hanlin Chen – Data Science Institute, hanlin.chen@vanderbilt.edu - prediction, API producer, consumer
-Hannah Wang – Computer Science, hannah.a.wang@vanderbilt.edu - onchain (contracts, backend and protocol operators), frontend ~80%
-DeAnthony L. Dixon – Computer Science, deanthony.l.dixon@vanderbilt.edu - frontend ~20%
+- Sreynit Khatt – Computer Science, sreynit.khatt@vanderbilt.edu - dockerfiles, yaml files, VMs, k8s pod set up, CouchDB setup
+- Hanlin Chen – Data Science Institute, hanlin.chen@vanderbilt.edu - prediction, API producer, consumer
+- Hannah Wang – Computer Science, hannah.a.wang@vanderbilt.edu - onchain (contracts, backend and protocol operators), frontend ~80%
+- DeAnthony L. Dixon – Computer Science, deanthony.l.dixon@vanderbilt.edu - frontend ~20%
 
 ### Features
 
